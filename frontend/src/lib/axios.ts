@@ -1,16 +1,17 @@
-import axios from "axios"
-import { useAuthStore } from "../store/authStore"
+import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/dashboard/v1",
-})
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/dashboard/v1',
+});
 
-api.interceptors.request.use(config => {
-  const token = useAuthStore.getState().token
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});
 
-export default api
+export default api;

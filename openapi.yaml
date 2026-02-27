@@ -1,32 +1,21 @@
 openapi: 3.0.3
 info:
-  title: MyGoLangApp API
+  title: DurianPay Internal Dashboard API
   version: "1.0.0"
 servers:
   - url: http://localhost:8080
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  
-  parameters:
-    sort:
-      name: sort
-      in: query
-      description: >
-        Comma-separated sort fields. Common patterns:
-        `-created_at` (prefix `-` = desc)
-        `amount` (no prefix `-` = asc)
-      required: false
-      schema:
-        type: string
-        example: "-created_at"
 
   schemas:
     Error:
       type: object
+      required: [code, message]
       properties:
         code:
           type: integer
@@ -34,10 +23,7 @@ components:
         message:
           type: string
           example: "Unauthenticated: missing or invalid token"
-      required:
-        - code
-        - message
-    
+
     User:
       type: object
       properties:
@@ -51,52 +37,72 @@ components:
     Payment:
       type: object
       properties:
-        id:
+        payment_id:
           type: string
-          example: "1"
-        merchant:
+          example: "PAY-0001"
+        merchant_name:
           type: string
-          example: "Merchant A"
+          example: "Tokopedia"
         status:
           type: string
-          example: "completed , processing , or failed"
+          enum: [completed, processing, failed]
         amount:
-          type: string
-          example: "alice@example.com"
+          type: integer
+          example: 150000
         created_at:
           type: string
           format: date-time
 
+    Summary:
+      type: object
+      description: Global payment counts — always reflects full dataset regardless of active filters
+      properties:
+        total:
+          type: integer
+          example: 200
+        completed:
+          type: integer
+          example: 118
+        processing:
+          type: integer
+          example: 42
+        failed:
+          type: integer
+          example: 40
+
+    PaymentsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+          description: Total records matching current filter (used for pagination)
+          example: 15
+        summary:
+          $ref: "#/components/schemas/Summary"
+
   responses:
     LoginResponse:
-      description: return token and user information
+      description: JWT token and user info
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/User'
+            $ref: "#/components/schemas/User"
     PaymentListResponse:
-      description: Payment List
+      description: Paginated payment list with total count
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              payments:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Payment'
+            $ref: "#/components/schemas/PaymentsResponse"
     UnauthorizedError:
       description: Authentication failed or missing credentials
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
-          examples:
-            unauthenticated:
-              summary: Missing or invalid token
-              value:
-                code: 401
-                message: "Unauthenticated: missing or invalid token"
+            $ref: "#/components/schemas/Error"
 
 paths:
   /dashboard/v1/auth/login:
@@ -116,30 +122,50 @@ paths:
                   type: string
       responses:
         "200":
-          $ref: '#/components/responses/LoginResponse'
+          $ref: "#/components/responses/LoginResponse"
         "401":
-          $ref: '#/components/responses/UnauthorizedError'
+          $ref: "#/components/responses/UnauthorizedError"
 
   /dashboard/v1/payments:
     get:
-      summary: List of payments
+      summary: List payments with pagination, filtering, search and sort
+      security:
+        - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/sort'
         - in: query
           name: status
           schema:
             type: string
-          description: status of payment (completed , processing , or failed)
+            enum: [completed, processing, failed]
+          description: Filter by payment status
         - in: query
-          name: id
+          name: search
           schema:
             type: string
-          description: payment id
-      security:
-        - bearerAuth: []
+          description: Search by merchant name or payment ID
+        - in: query
+          name: sort
+          schema:
+            type: string
+            example: "amount:desc"
+          description: "Sort field and direction. Format: field:asc or field:desc. Allowed fields: created_at, amount, merchant_name, status, payment_id"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of records per page
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of records to skip
       responses:
         "200":
-          $ref: '#/components/responses/PaymentListResponse'
+          $ref: "#/components/responses/PaymentListResponse"
         "401":
-          $ref: '#/components/responses/UnauthorizedError'
-
+          $ref: "#/components/responses/UnauthorizedError"
