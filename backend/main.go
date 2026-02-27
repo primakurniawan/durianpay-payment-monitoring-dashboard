@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 )
 
 func main() {
+
 	_ = godotenv.Load()
 
 	db, err := sql.Open("sqlite3", "dashboard.db?_foreign_keys=1")
@@ -61,6 +63,15 @@ func initDB(db *sql.DB) error {
 		  password_hash TEXT NOT NULL,
 		  role TEXT NOT NULL
 		);`,
+
+		`CREATE TABLE IF NOT EXISTS payments (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		payment_id TEXT NOT NULL,
+		merchant_name TEXT NOT NULL,
+		amount INTEGER NOT NULL,
+		status TEXT NOT NULL,
+		created_at DATETIME NOT NULL
+   );`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
@@ -83,6 +94,35 @@ func initDB(db *sql.DB) error {
 		}
 		if _, err := db.Exec("INSERT INTO users(email, password_hash, role) VALUES (?, ?, ?)", "operation@test.com", string(hash), "operation"); err != nil {
 			return err
+		}
+	}
+
+	var paymentCount int
+	err := db.QueryRow("SELECT COUNT(*) FROM payments").Scan(&paymentCount)
+	if err != nil {
+		return err
+	}
+
+	if paymentCount == 0 {
+		for i := 1; i <= 50; i++ {
+			status := "completed"
+			if i%5 == 0 {
+				status = "failed"
+			} else if i%3 == 0 {
+				status = "processing"
+			}
+
+			_, err := db.Exec(
+				"INSERT INTO payments(payment_id, merchant_name, amount, status, created_at) VALUES (?, ?, ?, ?, ?)",
+				fmt.Sprintf("PAY-%03d", i),
+				fmt.Sprintf("Merchant %d", i),
+				10000*i,
+				status,
+				time.Now(),
+			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

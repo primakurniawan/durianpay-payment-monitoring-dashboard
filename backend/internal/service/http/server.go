@@ -11,6 +11,7 @@ import (
 
 	"github.com/durianpay/fullstack-boilerplate/internal/openapigen"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	oapinethttpmw "github.com/oapi-codegen/nethttp-middleware"
 )
 
@@ -31,6 +32,16 @@ func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *S
 	}
 
 	r := chi.NewRouter()
+
+	// ✅ ADD CORS HERE (THIS IS THE REAL FIX)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	r.Route("/", func(api chi.Router) {
 		api.Use(oapinethttpmw.OapiRequestValidatorWithOptions(
@@ -70,7 +81,6 @@ func (s *Server) Start(addr string) {
 	<-stop
 	log.Println("Shutting down gracefully...")
 
-	// Timeout for shutdown
 	const shutdownTimeout = 10 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
