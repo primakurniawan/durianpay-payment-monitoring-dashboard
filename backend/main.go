@@ -45,10 +45,10 @@ func main() {
 
 	apiHandler := &api.APIHandler{
 		Auth: authH,
+		DB:   db,
 	}
 
 	server := srv.NewServer(apiHandler, config.OpenapiYamlLocation)
-
 	addr := config.HttpAddress
 	log.Printf("starting server on %s", addr)
 	server.Start(addr)
