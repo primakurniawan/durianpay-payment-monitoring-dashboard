@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom"
-import { useAuthStore } from "../features/auth/authStore"
+import { useAuthStore } from "../store/authStore"
 
 export default function ProtectedRoute({ children }: any) {
   const token = useAuthStore(s => s.token)

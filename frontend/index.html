@@ -2,11 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link href="https://framerusercontent.com/images/tgeBxZjClYlLQ8DExSWrxd918Z8.png" rel="icon" media="(prefers-color-scheme: light)">
+    <link href="https://framerusercontent.com/images/tgeBxZjClYlLQ8DExSWrxd918Z8.png" rel="icon" media="(prefers-color-scheme: dark)">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>DurianPay — Payment Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['Syne', 'sans-serif'],
+              body: ['DM Sans', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                50:  '#fff7ed',
+                100: '#ffedd5',
+                400: '#fb923c',
+                500: '#f97316',
+                600: '#ea580c',
+                700: '#c2410c',
+              },
+              slate: {
+                850: '#0f172a',
+                900: '#0b1120',
+                950: '#060b14',
+              }
+            },
+            keyframes: {
+              fadeUp: {
+                '0%': { opacity: '0', transform: 'translateY(16px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              shimmer: {
+                '0%': { backgroundPosition: '-200% 0' },
+                '100%': { backgroundPosition: '200% 0' },
+              }
+            },
+            animation: {
+              'fade-up': 'fadeUp 0.5s ease forwards',
+              'shimmer': 'shimmer 1.6s linear infinite',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body { font-family: 'DM Sans', sans-serif; }
+      .stagger-1 { animation-delay: 0.05s; opacity: 0; }
+      .stagger-2 { animation-delay: 0.12s; opacity: 0; }
+      .stagger-3 { animation-delay: 0.20s; opacity: 0; }
+      .stagger-4 { animation-delay: 0.28s; opacity: 0; }
+      .stagger-5 { animation-delay: 0.36s; opacity: 0; }
+      .shimmer-bg {
+        background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+        background-size: 200% 100%;
+      }
+    </style>
   </head>
-  <body>
+  <body class="bg-slate-950 text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

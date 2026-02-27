@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import api from "../../lib/axios"
+import api from "../lib/axios"
 
 export const usePayments = (status?: string) => {
   return useQuery({
@@ -8,7 +8,8 @@ export const usePayments = (status?: string) => {
       const res = await api.get("/payments", {
         params: status ? { status } : {}
       })
-      return res.data
+      // API returns null when no results, normalize to empty array
+      return Array.isArray(res.data) ? res.data : []
     }
   })
 }
