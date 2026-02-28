@@ -28,39 +28,52 @@ const (
 )
 
 func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *Server {
-
 	swagger, err := openapigen.GetSwagger()
 	if err != nil {
 		log.Fatalf("failed to load swagger: %v", err)
 	}
 
+	// Clear servers so validator doesn't reject based on host
+	swagger.Servers = nil
+
 	r := chi.NewRouter()
 
-	// ✅ CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
-	// ✅ OpenAPI request validation only
-	r.Use(oapinethttpmw.OapiRequestValidatorWithOptions(
-		swagger,
-		&oapinethttpmw.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
-					// 👇 disable OpenAPI auth checking
-					return nil
+	// OpenAPI validator — only validates the login endpoint strictly.
+	// The payments endpoint uses extra query params (limit, offset, search, sort)
+	// beyond what the generated spec knows about, so we skip validation for it.
+	r.Use(func(next http.Handler) http.Handler {
+		validator := oapinethttpmw.OapiRequestValidatorWithOptions(
+			swagger,
+			&oapinethttpmw.Options{
+				Options: openapi3filter.Options{
+					AuthenticationFunc: func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
+						return nil
+					},
 				},
+				SilenceServersWarning: true,
 			},
-		},
-	))
-	// ✅ JWT middleware
+		)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip OpenAPI validation for GET /payments — it has extra params
+			// (limit, offset, search, sort) the generated spec doesn't know about
+			if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/payments") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			validator(next).ServeHTTP(w, r)
+		})
+	})
+
 	r.Use(JWTMiddleware)
 
-	// ✅ Let OpenAPI handle routing
 	openapigen.HandlerFromMux(apiHandler, r)
 
 	return &Server{
@@ -70,16 +83,12 @@ func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *S
 
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		// Allow login endpoint
 		if strings.Contains(r.URL.Path, "/auth/login") {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Protect only payments endpoint
 		if strings.Contains(r.URL.Path, "/payments") {
-
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				http.Error(w, "missing authorization header", http.StatusUnauthorized)
@@ -92,7 +101,6 @@ func JWTMiddleware(next http.Handler) http.Handler {
 			}
 
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
 			_, err := validateJWT(tokenString)
 			if err != nil {
 				http.Error(w, "invalid or expired token", http.StatusUnauthorized)
@@ -122,9 +130,7 @@ func (s *Server) Start(addr string) {
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-
 	<-stop
 	log.Println("Shutting down gracefully...")
-
 	service.Close()
 }

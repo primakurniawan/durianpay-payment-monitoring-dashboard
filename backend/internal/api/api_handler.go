@@ -158,3 +158,8 @@ func (h *APIHandler) GetDashboardV1Payments(
 		Summary: summary,
 	})
 }
+
+// NoParams returns an empty GetDashboardV1PaymentsParams for use in tests.
+func NoParams() openapigen.GetDashboardV1PaymentsParams {
+	return openapigen.GetDashboardV1PaymentsParams{}
+}
